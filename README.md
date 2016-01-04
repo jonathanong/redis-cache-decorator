@@ -14,6 +14,7 @@ Features:
 - Uses Redis caching, expiration, and pub/sub.
 - Concurrency locking - if the function is being run elsewhere with the same arguments, it will wait for the result of that function instead of executing again.
 - Caching - caches results for as long as you want. If you set `ttl=0`, then you're just this library for concurrency locking, which is completely fine.
+- Timeouts - throws when executing or waiting for a function call takes too long
 - Only tested with [ioredis](https://github.com/luin/ioredis)
 
 Use Cases:
@@ -65,18 +66,27 @@ Creates a constructor with the following options:
 - `client <required>` - a redis client for GET/SET/PUBLISH, etc.
 - `subscriber <required>` - a redis client for `PSUBSCIRBE`
 - `namespace = ''` - a prefix for all the events
-- `ttl = 30` - the TTL expiration in seconds.
-- `timeout = 30` - how long to wait for the function to execute.
-- `onError = err => console.error(err.stack)` - an optional error handler for redis network errors.
-- `disabled = false` - disable this decorator. Useful for testing.
+- `ttl = '30s'` - the TTL expiration in seconds.
+- `timeout = '30s'` - how long to wait for the function to execute.
+- `pollFactor = 1 / 10` - the fraction of the timeout to poll.
+  For example, a `30s` timeout with a `1 / 10` factor means that redis is polled for new changes every 3 seconds.
+- `minimumPollInterval = '100ms'` - the minimum frequency of polling so you don't end up spamming redis
+- `createTimeoutError = () => <Error>{ message: 'Timed out!', code: 'RCDTIMEDOUT' }` - the function called to create a timeout error.
+  By default, you can check for timeout errors by checking `if (err.code === 'RCDTIMEDOUT')`.
+- `onError = err => console.error(err.stack)` - an error handler for redis network errors.
+- `disabled = false` - disable this decorator, specifically useful for testing.
 
 ### const decorate = CreateCacheDecorator(options)
 
 Create a decorator with a set of options.
 
 - `namespace <required>` - a namespace for this decorator
+- `pollInterval` - by default, calculated from `timeout`, `pollFactor`, and `minimumPollInterval`, but you can set this yourself.
 - `ttl`
 - `timeout`
+- `pollFactor`
+- `minimumPollInterval`
+- `createTimeoutError`
 - `onError`
 
 ### const decoratedFunction = decorate(fn)

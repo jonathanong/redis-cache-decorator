@@ -4,14 +4,15 @@ const assert = require('assert')
 const Redis = require('ioredis')
 
 require('bluebird').config({
-  warnings: false
+  // warnings: false
 })
 
 const client = Redis.createClient()
+const subscriber = Redis.createClient()
 
 const decorator = require('..')({
   client,
-  subscriber: Redis.createClient(),
+  subscriber,
 })
 
 before(() => {
@@ -22,7 +23,7 @@ describe('Redis Cache Decorator', () => {
   it('should not allow concurrent execution of an asynchronous function', () => {
     let called = 0
     const fn = decorator({
-      namespace: Math.random().toString()
+      namespace: createNamespace()
     })(val => {
       return wait(10).then(() => {
         called++
@@ -45,7 +46,7 @@ describe('Redis Cache Decorator', () => {
     let called = 0
     const rand = Math.random()
     const fn = decorator({
-      namespace: Math.random().toString()
+      namespace: createNamespace()
     })(val => {
       called++
       return val + rand
@@ -66,7 +67,7 @@ describe('Redis Cache Decorator', () => {
     let called = 0
 
     const fn = decorator({
-      namespace: Math.random().toString()
+      namespace: createNamespace()
     })(val => {
       return wait(10).then(() => {
         called++
@@ -87,7 +88,7 @@ describe('Redis Cache Decorator', () => {
     let called = 0
 
     const fn = decorator({
-      namespace: Math.random().toString()
+      namespace: createNamespace()
     })(val => {
       return wait(100).then(() => {
         called++
@@ -115,7 +116,7 @@ describe('Redis Cache Decorator', () => {
     // difference is that we don't care if the function is called multiple times
     // when the function does not take a lot of time
     const fn = decorator({
-      namespace: Math.random().toString()
+      namespace: createNamespace()
     })(val => {
       throw new Error('boom')
     })
@@ -133,10 +134,134 @@ describe('Redis Cache Decorator', () => {
       })
     ])
   })
+
+  it('should not cache w/ ttl=0', () => {
+    let called = 0
+    const fn = decorator({
+      namespace: createNamespace(),
+      ttl: 0,
+    })(val => {
+      called++
+      return val
+    })
+
+    return fn(1).then(val => {
+      assert.equal(val, 1)
+      return fn(1)
+    }).then(val => {
+      assert.equal(val, 1)
+      assert.equal(called, 2)
+    })
+  })
+
+  it('should support timeouts from the listener', () => {
+    let called = 0
+    const fn = decorator({
+      namespace: createNamespace(),
+      timeout: 200,
+    })(val => {
+      called++
+      return wait(1000).then(() => val)
+    })
+
+    // call it
+    fn(true).catch(noop)
+
+    // wait for itt o SETNX
+    return wait(100).then(() => {
+      // call it again
+      return fn(true)
+    }).then(() => {
+      throw new Error('boom')
+    }).catch(err => {
+      assert.equal(called, 1)
+      assert.equal(err.code, 'RCDTIMEDOUT')
+    })
+  })
+
+  it('should support timeouts from the function', () => {
+    const fn = decorator({
+      namespace: createNamespace(),
+      timeout: 1,
+    })(val => {
+      return wait(1000).then(() => val)
+    })
+
+    return fn(true).then(() => {
+      throw new Error('boom')
+    }).catch(err => {
+      assert.equal(err.code, 'RCDTIMEDOUT')
+    })
+  })
+
+  it('should work w/ disabled=true', () => {
+    let called = 0
+    const fn = require('..')({
+      client,
+      subscriber,
+      disabled: true,
+    })({
+      namespace: createNamespace(),
+    })(val => {
+      called++
+      return wait(1).then(() => val + 1)
+    })
+
+    return Promise.all([
+      fn(1),
+      fn(1),
+      fn(1),
+    ]).then(results => {
+      for (const result of results) {
+        assert.equal(result, 2)
+      }
+      assert.equal(called, 3)
+    })
+  })
+
+  describe('validations', () => {
+    describe('constructor options', () => {
+      it('should only support ttl=string|number', () => {
+        assert.throws(require('..')({
+          client,
+          subscriber,
+          ttl: true,
+        }))
+      })
+    })
+
+    describe('decorator options', () => {
+      it('should throw when the namespace is not set', () => {
+        assert.throws(() => {
+          decorator()
+        })
+
+        assert.throws(() => {
+          decorator({})
+        })
+      })
+    })
+
+    describe('decorator', () => {
+      it('should throw if the input value is not a string', () => {
+        assert.throws(() => {
+          decorator({
+            namespace: createNamespace()
+          })()
+        })
+      })
+    })
+  })
 })
 
 function wait (ms) {
   return new Promise(resolve => {
     setTimeout(resolve, ms)
   })
+}
+
+function noop () {}
+
+function createNamespace () {
+  return Math.random().toString()
 }

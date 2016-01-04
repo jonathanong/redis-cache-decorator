@@ -109,6 +109,15 @@ The decorated function will have the same API as the original function.
 
 Execute the decorated function. Will always return a `Promise` that resolves to the value.
 
+#### Streams
+
+If a stream is returned, the values will automatically be buffered.
+
+- `encoding='json'` - the stream will be concatenated as an object stream -> array.
+  If the stream is not an object stream, it will throw.
+- `encoding='string'` - the stream will be buffered into a string.
+- `encoding='buffer'` - the stream will be buffered into a `Buffer()` instance.
+
 [npm-image]: https://img.shields.io/npm/v/redis-cache-decorator.svg?style=flat-square
 [npm-url]: https://npmjs.org/package/redis-cache-decorator
 [travis-image]: https://img.shields.io/travis/jonathanong/redis-cache-decorator.svg?style=flat-square

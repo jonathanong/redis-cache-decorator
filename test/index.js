@@ -21,67 +21,147 @@ before(() => {
 
 describe('Redis Cache Decorator', () => {
   describe('Concurrency', () => {
-    it('should not allow concurrent execution of an asynchronous function', () => {
-      let called = 0
-      const fn = decorator({
-        namespace: createNamespace()
-      })(val => {
-        return wait(10).then(() => {
-          called++
-          return val + 1
+    describe('encoding=`json`', () => {
+      it('should not allow concurrent execution of an asynchronous function', () => {
+        let called = 0
+        const fn = decorator({
+          namespace: createNamespace()
+        })(val => {
+          return wait(10).then(() => {
+            called++
+            return val + 1
+          })
+        })
+
+        return Promise.all([
+          fn(1),
+          fn(1)
+        ]).then(results => {
+          // equal results
+          assert.deepEqual(results, [2, 2])
+          // only called once
+          assert.equal(called, 1)
         })
       })
 
-      return Promise.all([
-        fn(1),
-        fn(1)
-      ]).then(results => {
-        // equal results
-        assert.deepEqual(results, [2, 2])
-        // only called once
-        assert.equal(called, 1)
+      it('should not allow concurrent execution of a synchronous function', () => {
+        let called = 0
+        const rand = Math.random()
+        const fn = decorator({
+          namespace: createNamespace()
+        })(val => {
+          called++
+          return val + rand
+        })
+
+        return Promise.all([
+          fn(1),
+          fn(1)
+        ]).then(results => {
+          // equal results
+          assert.deepEqual(results, [1 + rand, 1 + rand])
+          // only called once
+          assert.equal(called, 1)
+        })
       })
     })
 
-    it('should not allow concurrent execution of a synchronous function', () => {
-      let called = 0
-      const rand = Math.random()
-      const fn = decorator({
-        namespace: createNamespace()
-      })(val => {
-        called++
-        return val + rand
-      })
+    describe('encoding=`buffer`', () => {
+      it('should not allow concurreny execution of an asynchronous function', () => {
+        let called = 0
+        const fn = decorator({
+          namespace: createNamespace(),
+          encoding: 'buffer',
+          minimumPollInterval: Infinity,
+        })(val => {
+          called++
+          return wait(100).then(() => {
+            return new Buffer(val, 'hex')
+          })
+        })
 
-      return Promise.all([
-        fn(1),
-        fn(1)
-      ]).then(results => {
-        // equal results
-        assert.deepEqual(results, [1 + rand, 1 + rand])
-        // only called once
-        assert.equal(called, 1)
+        const hex = '00ff44'
+
+        return Promise.all([
+          fn(hex),
+          fn(hex),
+        ]).then(results => {
+          for (const result of results) {
+            assert.equal(result.toString('hex'), hex)
+          }
+          assert.equal(called, 1)
+        })
       })
     })
   })
 
   describe('Caching', () => {
-    it('should cache results', () => {
-      let called = 0
+    describe('encoding=`json`', () => {
+      it('should cache results', () => {
+        let called = 0
 
-      const fn = decorator({
-        namespace: createNamespace()
-      })(val => {
-        return wait(10).then(() => {
-          called++
-          return val + 1
+        const fn = decorator({
+          namespace: createNamespace()
+        })(val => {
+          return wait(10).then(() => {
+            called++
+            return val + 1
+          })
         })
-      })
 
-      return fn(1).then(val => {
-        assert.equal(val, 2)
         return fn(1).then(val => {
           assert.equal(val, 2)
+          return fn(1).then(val => {
+            assert.equal(val, 2)
+            assert.equal(called, 1)
+          })
+        })
+      })
+    })
+
+    describe('encoding=`buffer`', () => {
+      it('should cache results', () => {
+        let called = 0
+        const fn = decorator({
+          namespace: createNamespace(),
+          encoding: 'buffer',
+        })(val => {
+          called++
+          return new Buffer(val, 'hex')
+        })
+
+        const hex = '00ff44'
+
+        return fn(hex).then(val => {
+          assert(Buffer.isBuffer(val))
+          assert.equal(val.toString('hex'), hex)
+          return fn(hex)
+        }).then(val => {
+          assert(Buffer.isBuffer(val))
+          assert.equal(val.toString('hex'), hex)
+          assert.equal(called, 1)
+        })
+      })
+    })
+
+    describe('encoding=`string`', () => {
+      it('should cache results', () => {
+        let called = 0
+        const fn = decorator({
+          namespace: createNamespace(),
+          encoding: 'string',
+        })(val => {
+          called++
+          return String(val) + String(val)
+        })
+
+        const string = 'asdf'
+
+        return fn(string).then(val => {
+          assert.equal(val, string + string)
+          return fn(string)
+        }).then(val => {
+          assert.equal(val, string + string)
           assert.equal(called, 1)
         })
       })
@@ -211,6 +291,8 @@ describe('Redis Cache Decorator', () => {
         client,
         subscriber,
         disabled: true,
+        ttl: '1hr',
+        timeout: '1hr',
       })({
         namespace: createNamespace(),
       })(val => {

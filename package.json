@@ -25,7 +25,7 @@
   },
   "scripts": {
     "lint": "eslint --cache lib test",
-    "test": "mocha",
+    "test": "mocha --bail",
     "test-cov": "nyc node_modules/mocha/bin/_mocha && nyc report --reporter=lcov"
   },
   "config": {

@@ -66,6 +66,11 @@ Creates a constructor with the following options:
 - `client <required>` - a redis client for GET/SET/PUBLISH, etc.
 - `subscriber <required>` - a redis client for `PSUBSCIRBE`
 - `namespace = ''` - a prefix for all the events
+- `encoding = 'json'` - how data is encoded between redis and node.js.
+  Supported values are:
+  - `json` - the default
+  - `string`
+  - `buffer`
 - `ttl = '30s'` - the TTL expiration in seconds.
 - `timeout = '30s'` - how long to wait for the function to execute.
 - `pollFactor = 1 / 10` - the fraction of the timeout to poll.

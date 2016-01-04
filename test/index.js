@@ -1,5 +1,6 @@
 'use strict'
 
+const Readable = require('stream').Readable
 const assert = require('assert')
 const Redis = require('ioredis')
 
@@ -184,6 +185,101 @@ describe('Redis Cache Decorator', () => {
         }).then(val => {
           assert.equal(val, 1)
           assert.equal(called, 2)
+        })
+      })
+    })
+  })
+
+  describe('Streams', () => {
+    describe('encoding=`json`', () => {
+      it('should support object mode streams', () => {
+        let called = 0
+
+        const fn = decorator({
+          namespace: createNamespace()
+        })(val => {
+          called++
+          return wait(10).then(() => {
+            const stream = new Readable({
+              objectMode: true
+            })
+            stream.push(val)
+            stream.push(val + 1)
+            stream.push(null)
+            return stream
+          })
+        })
+
+        return fn(1).then(val => {
+          assert.deepEqual(val, [1, 2])
+          return fn(1).then(val => {
+            assert.deepEqual(val, [1, 2])
+            assert.equal(called, 1)
+          })
+        })
+      })
+    })
+
+    describe('encoding=`string`', () => {
+      it('should support string streams', () => {
+        let called = 0
+
+        const fn = decorator({
+          namespace: createNamespace(),
+          encoding: 'string',
+        })(string => {
+          called++
+          return wait(10).then(() => {
+            const stream = new Readable()
+            stream.push(string)
+            stream.push(':')
+            stream.push(string)
+            stream.push(null)
+            return stream
+          })
+        })
+
+        const string = 'asdf'
+
+        return fn(string).then(val => {
+          assert.deepEqual(val, [string, string].join(':'))
+          return fn(string).then(val => {
+            assert.deepEqual(val, [string, string].join(':'))
+            assert.equal(called, 1)
+          })
+        })
+      })
+    })
+
+    describe('encoding=`buffer`', () => {
+      it('should support binary streams', () => {
+        let called = 0
+
+        const fn = decorator({
+          namespace: createNamespace(),
+          encoding: 'buffer',
+        })(string => {
+          called++
+          return wait(10).then(() => {
+            const stream = new Readable()
+            stream.push(string)
+            stream.push(':')
+            stream.push(string)
+            stream.push(null)
+            return stream
+          })
+        })
+
+        const string = 'asdf'
+
+        return fn(string).then(val => {
+          assert(Buffer.isBuffer(val))
+          assert.deepEqual(val.toString(), [string, string].join(':'))
+          return fn(string).then(val => {
+            assert(Buffer.isBuffer(val))
+            assert.deepEqual(val.toString(), [string, string].join(':'))
+            assert.equal(called, 1)
+          })
         })
       })
     })

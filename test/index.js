@@ -442,6 +442,26 @@ describe('Redis Cache Decorator', () => {
       })
     })
   })
+
+  describe('A lot of requests at once', () => {
+    it('should not throw warnings', () => {
+      const fn = require('..')({
+        client,
+        subscriber,
+        ttl: '1hr',
+        timeout: '1hr',
+      })({
+        namespace: createNamespace(),
+      })(val => wait(Math.random() * 100).then(() => val))
+
+      const promises = []
+      for (let i = 0; i < 10000; i++) {
+        promises.push(wait(Math.random() * 100).then(fn(Math.random())))
+      }
+
+      return Promise.all(promises)
+    })
+  })
 })
 
 function wait (ms) {

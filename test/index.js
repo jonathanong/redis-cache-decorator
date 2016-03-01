@@ -110,7 +110,10 @@ describe('Redis Cache Decorator', () => {
           })
         })
 
-        return fn(1).then(val => {
+        const promise = fn(1)
+        assert.equal('string', typeof promise.hash)
+
+        return promise.then(val => {
           assert.equal(val, 2)
           return fn(1).then(val => {
             assert.equal(val, 2)

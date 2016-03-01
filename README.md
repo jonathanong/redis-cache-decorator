@@ -105,9 +105,16 @@ The decorated function will have the same API as the original function.
   Do not access `this` within the function.
   The primary reason is that it's difficult to decide how to cache.
 
-### decoratedFunction(...args).then(value => {}, err => {})
+### const job = decoratedFunction(...args)
 
 Execute the decorated function. Will always return a `Promise` that resolves to the value.
+In addition, the promise will have the following properties:
+
+- `.hash` - hash of the arguments for this job.
+
+### job.then(value => {}, err => {})
+
+Resolve the promise to retrieve the results of the job.
 
 #### Streams
 

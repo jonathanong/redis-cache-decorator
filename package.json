@@ -21,7 +21,6 @@
     "eslint-config-jongleberry": "^2.0.0",
     "eslint-plugin-promise": "^1.0.8",
     "eslint-plugin-standard": "^1.0.0",
-    "ghooks": "^1.0.0",
     "ioredis": "^1.13.2",
     "mocha": "^2.0.0",
     "nyc": "^5.0.0"
@@ -30,11 +29,6 @@
     "lint": "eslint --cache lib test",
     "test": "mocha --bail",
     "test-cov": "nyc node_modules/mocha/bin/_mocha && nyc report --reporter=lcov"
-  },
-  "config": {
-    "ghooks": {
-      "pre-push": "npm run lint"
-    }
   },
   "keywords": [
     "redis",

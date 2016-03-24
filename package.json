@@ -36,7 +36,14 @@
       "pre-push": "npm run lint"
     }
   },
-  "keywords": [],
+  "keywords": [
+    "redis",
+    "cache",
+    "function",
+    "decorator",
+    "concurrency",
+    "locking"
+  ],
   "files": [
     "lib"
   ],

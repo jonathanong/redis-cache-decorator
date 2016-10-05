@@ -1,5 +1,8 @@
 'use strict'
 
+/* eslint-env mocha */
+/* eslint max-nested-callbacks: 0 */
+
 const Readable = require('stream').Readable
 const assert = require('assert')
 const Redis = require('ioredis')
@@ -13,7 +16,7 @@ const subscriber = Redis.createClient()
 
 const decorator = require('..')({
   client,
-  subscriber,
+  subscriber
 })
 
 before(() => {
@@ -73,7 +76,7 @@ describe('Redis Cache Decorator', () => {
         const fn = decorator({
           namespace: createNamespace(),
           encoding: 'buffer',
-          minimumPollInterval: Infinity,
+          minimumPollInterval: Infinity
         })(val => {
           called++
           return wait(100).then(() => {
@@ -85,7 +88,7 @@ describe('Redis Cache Decorator', () => {
 
         return Promise.all([
           fn(hex),
-          fn(hex),
+          fn(hex)
         ]).then(results => {
           for (const result of results) {
             assert.equal(result.toString('hex'), hex)
@@ -128,7 +131,7 @@ describe('Redis Cache Decorator', () => {
         let called = 0
         const fn = decorator({
           namespace: createNamespace(),
-          encoding: 'buffer',
+          encoding: 'buffer'
         })(val => {
           called++
           return new Buffer(val, 'hex')
@@ -153,7 +156,7 @@ describe('Redis Cache Decorator', () => {
         let called = 0
         const fn = decorator({
           namespace: createNamespace(),
-          encoding: 'string',
+          encoding: 'string'
         })(val => {
           called++
           return String(val) + String(val)
@@ -176,7 +179,7 @@ describe('Redis Cache Decorator', () => {
         let called = 0
         const fn = decorator({
           namespace: createNamespace(),
-          ttl: 0,
+          ttl: 0
         })(val => {
           called++
           return val
@@ -229,7 +232,7 @@ describe('Redis Cache Decorator', () => {
 
         const fn = decorator({
           namespace: createNamespace(),
-          encoding: 'string',
+          encoding: 'string'
         })(string => {
           called++
           return wait(10).then(() => {
@@ -260,7 +263,7 @@ describe('Redis Cache Decorator', () => {
 
         const fn = decorator({
           namespace: createNamespace(),
-          encoding: 'buffer',
+          encoding: 'buffer'
         })(string => {
           called++
           return wait(10).then(() => {
@@ -346,7 +349,7 @@ describe('Redis Cache Decorator', () => {
       let called = 0
       const fn = decorator({
         namespace: createNamespace(),
-        timeout: 200,
+        timeout: 200
       })(val => {
         called++
         return wait(1000).then(() => val)
@@ -370,7 +373,7 @@ describe('Redis Cache Decorator', () => {
     it('should support timeouts from the function', () => {
       const fn = decorator({
         namespace: createNamespace(),
-        timeout: 1,
+        timeout: 1
       })(val => {
         return wait(1000).then(() => val)
       })
@@ -391,9 +394,9 @@ describe('Redis Cache Decorator', () => {
         subscriber,
         disabled: true,
         ttl: '1hr',
-        timeout: '1hr',
+        timeout: '1hr'
       })({
-        namespace: createNamespace(),
+        namespace: createNamespace()
       })(val => {
         called++
         return wait(1).then(() => val + 1)
@@ -402,7 +405,7 @@ describe('Redis Cache Decorator', () => {
       return Promise.all([
         fn(1),
         fn(1),
-        fn(1),
+        fn(1)
       ]).then(results => {
         for (const result of results) {
           assert.equal(result, 2)
@@ -418,7 +421,7 @@ describe('Redis Cache Decorator', () => {
         assert.throws(require('..')({
           client,
           subscriber,
-          ttl: true,
+          ttl: true
         }))
       })
     })
@@ -452,9 +455,9 @@ describe('Redis Cache Decorator', () => {
         client,
         subscriber,
         ttl: '1hr',
-        timeout: '1hr',
+        timeout: '1hr'
       })({
-        namespace: createNamespace(),
+        namespace: createNamespace()
       })(val => wait(Math.random() * 100).then(() => val))
 
       const promises = []

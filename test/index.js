@@ -449,6 +449,34 @@ describe('Redis Cache Decorator', () => {
     })
   })
 
+  describe('Manually getting and setting values', () => {
+    const fn = require('..')({
+      client,
+      subscriber,
+      ttl: '1hr',
+      timeout: '1hr'
+    })({
+      namespace: createNamespace()
+    })(val => wait(Math.random() * 100).then(() => val))
+
+    it('should return a createHash() function', () => {
+      assert.equal('string', typeof fn.createHash(1))
+    })
+
+    it('should set a value directly', () => {
+      const hash = fn.createHash('asdf')
+      return fn.set(hash, {
+        a: 1
+      })
+    })
+
+    it('should return the value', () => {
+      return fn('asdf').then(value => {
+        assert.equal(value.a, 1)
+      })
+    })
+  })
+
   describe('A lot of requests at once', () => {
     it('should not throw warnings', () => {
       const fn = require('..')({

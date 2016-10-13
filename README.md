@@ -116,6 +116,14 @@ In addition, the promise will have the following properties:
 
 Resolve the promise to retrieve the results of the job.
 
+### const hash = decoratedFunction.createHash(...args)
+
+Create the hash string for the specified arguments.
+
+### decoratedFunction.set(hash, value).then(value => {})
+
+Manually set the value of a hash.
+
 #### Streams
 
 If a stream is returned, the values will automatically be buffered.
